@@ -254,15 +254,31 @@ Every signal includes:
 - **✅ I'm in** – You took the trade; agent monitors for emergency exit
 - **❌ Skipped** – You didn't take it; no monitoring
 
+The bot **replies** when you click any button:
+- "✅ Got it! I'll monitor this position for emergency exits."
+- "❌ Skipped. I won't monitor this one."
+- "🔒 Closed. I'll stop monitoring."
+
 Only positions where you clicked **I'm in** are monitored. Run `python main.py live` so the bot can receive button clicks.
+
+## Daily Summary (11:59pm)
+
+At the end of each day (11:59pm UTC), the bot sends a **self-rating summary**:
+
+> *"If you had taken the trades I sent you today..."*
+
+It lists each signal with simulated outcome (WIN/LOSS/OPEN based on current price vs SL/TP), win rate, total P&L, and a short self-assessment. Configure `DAILY_SUMMARY_HOUR` and `DAILY_SUMMARY_MINUTE` in `config/settings.py`.
 
 ---
 
 ## Signal Format (Telegram)
 
+Each signal includes **CURRENT** (market price at signal time) and **ENTRY**:
+
 ```
 PAIR: BTCUSD
 TYPE: BUY
+CURRENT: 62,450
 ENTRY: 62,450
 STOP LOSS: 61,980
 TAKE PROFIT: 63,900

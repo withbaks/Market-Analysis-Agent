@@ -6,7 +6,9 @@ Fetches data, runs strategies, scores, filters, and sends alerts.
 import asyncio
 import logging
 import sys
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent))
@@ -27,6 +29,9 @@ from config.settings import (
     EMERGENCY_EXIT_MAX_AGE_HOURS,
     USER_CONFIRMED_MAX_AGE_HOURS,
     DIAGNOSTIC_MODE,
+    DAILY_SUMMARY_HOUR,
+    DAILY_SUMMARY_MINUTE,
+    DAILY_SUMMARY_TIMEZONE,
 )
 from core.models import OHLCV, Signal, SignalType, MarketRegime
 from data.ohlc_fetcher import OHLCFetcher
@@ -36,6 +41,7 @@ from services.telegram_service import TelegramService
 from services.trade_journal import TradeJournal
 from services.position_monitor import PositionMonitor
 from services.telegram_callback_receiver import TelegramCallbackReceiver
+from services.daily_summary import build_daily_summary
 from risk.engine import RiskEngine
 from risk.position_sizer import PositionSizer
 
@@ -160,28 +166,34 @@ class MarketAnalysisAgent:
         logger.info("Cycle complete: %d signal(s) from %s", len(all_signals), self.symbols)
         for signal in all_signals:
             signal_id = self.journal.log_signal(signal)
+            current_price = signal.entry  # entry = last candle close = current price at signal
             if self.telegram.is_enabled():
-                await self.telegram.send_signal(signal, signal_id)
+                await self.telegram.send_signal(signal, signal_id, current_price=current_price)
             logger.info("Signal sent: %s %s @ %s (id=%s)", signal.symbol, signal.signal_type.value, signal.entry, signal_id)
 
         # Human-like: monitor open positions and alert emergency exits
         await self._check_emergency_exits()
 
-    def _on_button_click(self, signal_id: str, action: str) -> None:
+    def _on_button_click(self, signal_id: str, action: str) -> str | None:
         """
         Handle Telegram button clicks: in, skip, closed.
-        Edge cases: duplicate clicks (idempotent), unknown signal_id (no-op), wrong chat (filtered by receiver).
+        Returns message to send as reply (or None).
         """
         if action == "in":
             if self.journal.set_user_in_position(signal_id, True):
                 logger.info("User confirmed in position: %s", signal_id)
-            else:
-                logger.debug("Button 'I'm in' for unknown/old signal: %s", signal_id)
+                return "✅ <b>Got it!</b> I'll monitor this position for emergency exits."
+            logger.debug("Button 'I'm in' for unknown/old signal: %s", signal_id)
+            return "⚠️ Signal not found or already closed."
         elif action == "skip":
             self.journal.set_user_in_position(signal_id, False)
+            return "❌ <b>Skipped.</b> I won't monitor this one."
         elif action == "closed":
             if self.journal.set_user_closed(signal_id):
                 logger.info("User closed position: %s", signal_id)
+                return "🔒 <b>Closed.</b> I'll stop monitoring."
+            return "🔒 <b>Closed.</b> I'll stop monitoring."
+        return None
 
     async def _check_emergency_exits(self) -> None:
         """Check open positions (user clicked 'I'm in') and send emergency exit alerts when thesis invalidates."""
@@ -228,12 +240,33 @@ class MarketAnalysisAgent:
         """Run continuously with interval. Starts callback receiver for button clicks."""
         logger.info("Starting live mode, interval=%ds", interval_seconds)
         if self.telegram.is_enabled():
-            self._callback_receiver = TelegramCallbackReceiver(handler=self._on_button_click)
+            self._callback_receiver = TelegramCallbackReceiver(
+                handler=self._on_button_click,
+                reply_sender=lambda msg: self.telegram.send_message(msg),
+            )
             self._callback_receiver.start()
+        _last_summary_date: str | None = None
         try:
             while True:
                 try:
                     await self.run_cycle()
+                    # Daily summary at configured local time (e.g. 11:59pm Nigeria = Africa/Lagos)
+                    tz = ZoneInfo(DAILY_SUMMARY_TIMEZONE)
+                    now = datetime.now(tz)
+                    if now.hour == DAILY_SUMMARY_HOUR and now.minute >= DAILY_SUMMARY_MINUTE - 5:
+                        date_str = now.strftime("%Y-%m-%d")
+                    elif now.hour == 0 and now.minute < 10:
+                        date_str = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+                    else:
+                        date_str = None
+                    if date_str and _last_summary_date != date_str:
+                        summary = await build_daily_summary(
+                            self.journal, self.fetcher, date_str
+                        )
+                        if summary and self.telegram.is_enabled():
+                            await self.telegram.send_message(summary)
+                            _last_summary_date = date_str
+                            logger.info("Daily summary sent for %s", date_str)
                 except Exception as e:
                     logger.exception("Cycle error: %s", e)
                 await asyncio.sleep(interval_seconds)

@@ -166,6 +166,19 @@ class TradeJournal:
         conn.close()
         return [dict(r) for r in rows]
 
+    def get_trades_for_date(self, date_str: str) -> List[dict]:
+        """Fetch all signals (no outcome filter) for a given date. date_str: YYYY-MM-DD."""
+        import sqlite3
+        conn = sqlite3.connect(str(self.db_path))
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(
+            "SELECT * FROM trades WHERE date(timestamp) = ? ORDER BY timestamp ASC",
+            (date_str,),
+        )
+        rows = cur.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
     def get_trade(self, signal_id: str) -> Optional[dict]:
         """Fetch single trade by signal_id."""
         import sqlite3

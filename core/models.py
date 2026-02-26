@@ -83,13 +83,15 @@ class Signal:
     regime: Optional[MarketRegime] = None
     spread_bps: Optional[float] = None
 
-    def to_telegram_message(self) -> str:
-        """Format signal for Telegram."""
+    def to_telegram_message(self, current_price: Optional[float] = None) -> str:
+        """Format signal for Telegram. current_price: market price at signal time."""
         confluences = " + ".join(self.confluence_factors) if self.confluence_factors else "N/A"
         rr_str = f"1:{int(self.risk_reward)}"
+        price_line = f"CURRENT: {current_price:,.2f}\n" if current_price is not None else ""
         return (
             f"PAIR: {self.symbol}\n"
             f"TYPE: {self.signal_type.value}\n"
+            f"{price_line}"
             f"ENTRY: {self.entry:,.2f}\n"
             f"STOP LOSS: {self.stop_loss:,.2f}\n"
             f"TAKE PROFIT: {self.take_profit:,.2f}\n"

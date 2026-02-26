@@ -5,6 +5,7 @@ Single data source - no Binance required.
 
 import asyncio
 import logging
+import random
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -12,6 +13,10 @@ from core.models import OHLCV
 from core.exceptions import DataFetchError
 
 logger = logging.getLogger(__name__)
+
+# Retry config for transient yfinance/Yahoo API failures
+MAX_RETRIES = 3
+RETRY_DELAY_BASE = 2.0  # seconds
 
 # yfinance interval mapping (Binance-style -> yfinance)
 YF_INTERVAL_MAP = {
@@ -90,11 +95,25 @@ class YFinanceDataClient:
                 )
             return candles
 
-        try:
-            loop = asyncio.get_event_loop()
-            candles = await loop.run_in_executor(None, _fetch)
-        except Exception as e:
-            raise DataFetchError(f"yfinance error: {e}") from e
+        loop = asyncio.get_event_loop()
+        for attempt in range(MAX_RETRIES):
+            try:
+                candles = await loop.run_in_executor(None, _fetch)
+                break
+            except Exception as e:
+                if attempt < MAX_RETRIES - 1:
+                    delay = RETRY_DELAY_BASE * (2**attempt) + random.uniform(0, 1)
+                    logger.warning(
+                        "yfinance fetch failed for %s (attempt %d/%d), retrying in %.1fs: %s",
+                        symbol,
+                        attempt + 1,
+                        MAX_RETRIES,
+                        delay,
+                        str(e),
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    raise DataFetchError(f"yfinance error: {e}") from e
 
         if not candles:
             raise DataFetchError(f"No data from yfinance for {symbol} {interval}")

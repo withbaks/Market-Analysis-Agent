@@ -8,6 +8,7 @@ import logging
 import time
 from typing import Optional
 
+
 import aiohttp
 
 from core.models import Signal
@@ -64,10 +65,11 @@ class TelegramService:
             ],
         }
 
-    async def send_signal(self, signal: Signal, signal_id: str) -> bool:
+    async def send_signal(self, signal: Signal, signal_id: str, current_price: Optional[float] = None) -> bool:
         """
         Send signal to Telegram with buttons.
         signal_id: from journal.log_signal (for callback_data).
+        current_price: market price at signal time (shown before entry).
         """
         if not self._enabled:
             logger.warning("Telegram not configured - skipping send")
@@ -76,7 +78,8 @@ class TelegramService:
             logger.info("Skipping duplicate signal: %s", self._signal_key(signal))
             return False
 
-        message = signal.to_telegram_message()
+        price = current_price if current_price is not None else signal.entry
+        message = signal.to_telegram_message(current_price=price)
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
         payload = {
             "chat_id": self.chat_id,
@@ -100,6 +103,25 @@ class TelegramService:
                         return False
         except Exception as e:
             logger.exception("Telegram send failed: %s", e)
+            return False
+
+    async def send_message(self, text: str) -> bool:
+        """Send a plain text message to the chat."""
+        if not self._enabled:
+            return False
+        url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+        payload = {
+            "chat_id": self.chat_id,
+            "text": text,
+            "parse_mode": "HTML",
+            "disable_web_page_preview": True,
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=payload) as resp:
+                    return resp.status == 200
+        except Exception as e:
+            logger.exception("Telegram send_message failed: %s", e)
             return False
 
     async def send_emergency_exit(

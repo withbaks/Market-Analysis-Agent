@@ -1,6 +1,7 @@
 """
 Telegram callback receiver - processes button clicks (I'm in, Skipped, Closed).
 Runs as background task during live mode.
+Sends a reply message after each button click.
 """
 
 import asyncio
@@ -17,12 +18,14 @@ logger = logging.getLogger(__name__)
 class TelegramCallbackReceiver:
     """
     Polls Telegram for updates and processes callback_query from inline buttons.
-    Calls handler(signal_id, action) where action in ("in", "skip", "closed").
+    Calls handler(signal_id, action) -> Optional[str]; if handler returns a string,
+    sends it as a reply message via reply_sender.
     """
 
     def __init__(
         self,
-        handler: Callable[[str, str], None],
+        handler: Callable[[str, str], Optional[str]],
+        reply_sender: Optional[Callable[[str], object]] = None,
         bot_token: Optional[str] = None,
         chat_id: Optional[str] = None,
     ):
@@ -30,6 +33,7 @@ class TelegramCallbackReceiver:
         self.chat_id = chat_id or TELEGRAM_CHAT_ID
         self._enabled = bool(self.bot_token and self.chat_id)
         self._handler = handler
+        self._reply_sender = reply_sender
         self._offset = 0
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -81,7 +85,14 @@ class TelegramCallbackReceiver:
                 continue
 
             try:
-                self._handler(signal_id, action)
+                reply_msg = self._handler(signal_id, action)
+                if reply_msg and self._reply_sender:
+                    try:
+                        coro = self._reply_sender(reply_msg)
+                        if asyncio.iscoroutine(coro):
+                            await coro
+                    except Exception as e:
+                        logger.debug("Reply send failed: %s", e)
             except Exception as e:
                 logger.exception("Callback handler error: %s", e)
 

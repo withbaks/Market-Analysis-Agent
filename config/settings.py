@@ -88,6 +88,11 @@ SYMBOL_SOURCE_MAP = {
 USER_CONFIRMED_MAX_AGE_HOURS = 168  # 7 days - user-confirmed positions
 CALLBACK_POLL_INTERVAL = 2.0        # Seconds between Telegram update polls
 
+# ─── Daily Summary ────────────────────────────────────────────────────────
+DAILY_SUMMARY_HOUR = 23             # 11pm local
+DAILY_SUMMARY_MINUTE = 59           # 59 min
+DAILY_SUMMARY_TIMEZONE = "Africa/Lagos"  # Nigerian time. Use "UTC", "America/New_York", etc.
+
 # ─── Data & API ──────────────────────────────────────────────────────────
 BINANCE_BASE_URL = "https://api.binance.com"
 BINANCE_WS_URL = "wss://stream.binance.com:9443/ws"
