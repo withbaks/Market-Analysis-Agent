@@ -78,8 +78,7 @@ class TelegramService:
             logger.info("Skipping duplicate signal: %s", self._signal_key(signal))
             return False
 
-        price = current_price if current_price is not None else signal.entry
-        message = signal.to_telegram_message(current_price=price)
+        message = signal.to_telegram_message(current_price=current_price)
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
         payload = {
             "chat_id": self.chat_id,

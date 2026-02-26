@@ -106,7 +106,7 @@ class MarketAnalysisAgent:
         try:
             data = await self.fetcher.fetch_multi_timeframe(symbol, timeframes)
         except Exception as e:
-            logger.exception("Data fetch failed for %s: %s", symbol, e)
+            logger.warning("Data fetch failed for %s: %s", symbol, e)
             return []
 
         direction, probability, confluence, regime, valid = self.scoring.score(
@@ -166,10 +166,13 @@ class MarketAnalysisAgent:
         logger.info("Cycle complete: %d signal(s) from %s", len(all_signals), self.symbols)
         for signal in all_signals:
             signal_id = self.journal.log_signal(signal)
-            current_price = signal.entry  # entry = last candle close = current price at signal
+            # Fetch live price at send time only; no fallback to entry
+            current_price = await self.fetcher.get_current_price(signal.symbol, self.entry_tf)
+            if current_price is None:
+                logger.warning("get_current_price failed for %s, omitting CURRENT line", signal.symbol)
             if self.telegram.is_enabled():
                 await self.telegram.send_signal(signal, signal_id, current_price=current_price)
-            logger.info("Signal sent: %s %s @ %s (id=%s)", signal.symbol, signal.signal_type.value, signal.entry, signal_id)
+            logger.info("Signal sent: %s %s (id=%s)%s", signal.symbol, signal.signal_type.value, signal_id, f" @ {current_price}" if current_price is not None else "")
 
         # Human-like: monitor open positions and alert emergency exits
         await self._check_emergency_exits()

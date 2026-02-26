@@ -5120,3 +5120,91 @@ core.exceptions.DataFetchError: yfinance error: 'NoneType' object is not subscri
 2026-02-26 22:03:55,147 | INFO     | services.trade_journal | Logged signal XAUUSD_BUY_20260226210347
 2026-02-26 22:03:55,895 | INFO     | services.telegram_service | Telegram signal sent: XAUUSD BUY (id=XAUUSD_BUY_20260226210347)
 2026-02-26 22:03:55,896 | INFO     | __main__ | Signal sent: XAUUSD BUY @ 5210.2998046875 (id=XAUUSD_BUY_20260226210347)
+2026-02-26 22:08:58,966 | INFO     | __main__ | Starting analysis cycle
+2026-02-26 22:09:00,219 | INFO     | __main__ | GBPUSD DIAG: regime=RANGING htf=SELL ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:09:00,219 | INFO     | __main__ | GBPUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:09:01,688 | INFO     | __main__ | XAUUSD DIAG: regime=RANGING htf=BUY ltf_ok=True smc_ok=True factors=['BOS', 'CHOCH'] prob=0.71 FAIL_AT=None
+2026-02-26 22:09:02,711 | INFO     | __main__ | BTCUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:09:02,712 | INFO     | __main__ | BTCUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:09:02,712 | INFO     | __main__ | Cycle complete: 1 signal(s) from ['GBPUSD', 'XAUUSD', 'BTCUSD']
+2026-02-26 22:09:02,715 | INFO     | services.trade_journal | Logged signal XAUUSD_BUY_20260226210901
+2026-02-26 22:09:04,457 | INFO     | services.telegram_service | Telegram signal sent: XAUUSD BUY (id=XAUUSD_BUY_20260226210901)
+2026-02-26 22:09:04,457 | INFO     | __main__ | Signal sent: XAUUSD BUY @ 5210.2998046875 (id=XAUUSD_BUY_20260226210901)
+2026-02-26 22:11:31,145 | INFO     | services.telegram_callback_receiver | Telegram callback receiver stopped
+2026-02-26 22:11:35,169 | INFO     | services.calibration | Loaded calibration state: 5 bins
+2026-02-26 22:11:35,169 | INFO     | __main__ | Starting live mode, interval=300s
+2026-02-26 22:11:35,169 | INFO     | services.telegram_callback_receiver | Telegram callback receiver started
+2026-02-26 22:11:35,169 | INFO     | __main__ | Starting analysis cycle
+2026-02-26 22:11:42,593 | INFO     | __main__ | GBPUSD DIAG: regime=RANGING htf=SELL ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:11:42,593 | INFO     | __main__ | GBPUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:11:47,645 | INFO     | __main__ | XAUUSD DIAG: regime=RANGING htf=BUY ltf_ok=True smc_ok=True factors=['BOS', 'CHOCH'] prob=0.71 FAIL_AT=None
+2026-02-26 22:12:05,684 | WARNING  | data.yfinance_client | yfinance fetch failed for BTC-USD (attempt 1/3), retrying in 2.6s: 'NoneType' object is not subscriptable
+2026-02-26 22:12:18,301 | WARNING  | data.yfinance_client | yfinance fetch failed for BTC-USD (attempt 2/3), retrying in 4.5s: 'NoneType' object is not subscriptable
+2026-02-26 22:12:32,916 | ERROR    | __main__ | Data fetch failed for BTCUSD: yfinance error: 'NoneType' object is not subscriptable
+Traceback (most recent call last):
+  File "/Users/jayden/market-analysis-agent/data/yfinance_client.py", line 101, in fetch_klines
+    candles = await loop.run_in_executor(None, _fetch)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/anaconda3/lib/python3.12/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/data/yfinance_client.py", line 78, in _fetch
+    df = ticker.history(start=start, end=end, interval=yf_interval)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/venv/lib/python3.12/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/venv/lib/python3.12/site-packages/yfinance/base.py", line 129, in history
+    return self._lazy_load_price_history().history(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/venv/lib/python3.12/site-packages/yfinance/utils.py", line 95, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/venv/lib/python3.12/site-packages/yfinance/scrapers/history.py", line 224, in history
+    if data['chart']['result'] is None:
+       ~~~~^^^^^^^^^
+TypeError: 'NoneType' object is not subscriptable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/jayden/market-analysis-agent/main.py", line 107, in process_symbol
+    data = await self.fetcher.fetch_multi_timeframe(symbol, timeframes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/data/ohlc_fetcher.py", line 66, in fetch_multi_timeframe
+    result[tf] = await self.fetch(symbol, tf, limit=limit, use_cache=use_cache)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/data/ohlc_fetcher.py", line 47, in fetch
+    candles = await self._yfinance.fetch_klines(api_symbol, timeframe, limit=limit)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/jayden/market-analysis-agent/data/yfinance_client.py", line 116, in fetch_klines
+    raise DataFetchError(f"yfinance error: {e}") from e
+core.exceptions.DataFetchError: yfinance error: 'NoneType' object is not subscriptable
+2026-02-26 22:12:32,928 | INFO     | __main__ | Cycle complete: 1 signal(s) from ['GBPUSD', 'XAUUSD', 'BTCUSD']
+2026-02-26 22:12:32,935 | INFO     | services.trade_journal | Logged signal XAUUSD_BUY_20260226211147
+2026-02-26 22:12:35,655 | INFO     | services.telegram_service | Telegram signal sent: XAUUSD BUY (id=XAUUSD_BUY_20260226211147)
+2026-02-26 22:12:35,658 | INFO     | __main__ | Signal sent: XAUUSD BUY @ 5215.0 (id=XAUUSD_BUY_20260226211147)
+2026-02-26 22:15:13,272 | INFO     | services.telegram_callback_receiver | Telegram callback receiver stopped
+2026-02-26 22:15:16,061 | INFO     | services.calibration | Loaded calibration state: 5 bins
+2026-02-26 22:15:16,061 | INFO     | __main__ | Starting live mode, interval=300s
+2026-02-26 22:15:16,061 | INFO     | services.telegram_callback_receiver | Telegram callback receiver started
+2026-02-26 22:15:16,061 | INFO     | __main__ | Starting analysis cycle
+2026-02-26 22:15:25,348 | INFO     | __main__ | GBPUSD DIAG: regime=RANGING htf=SELL ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:15:25,348 | INFO     | __main__ | GBPUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:15:28,859 | INFO     | __main__ | XAUUSD DIAG: regime=RANGING htf=BUY ltf_ok=True smc_ok=True factors=['BOS', 'CHOCH'] prob=0.71 FAIL_AT=None
+2026-02-26 22:15:34,346 | INFO     | __main__ | BTCUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:15:34,346 | INFO     | __main__ | BTCUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:15:34,346 | INFO     | __main__ | Cycle complete: 1 signal(s) from ['GBPUSD', 'XAUUSD', 'BTCUSD']
+2026-02-26 22:15:34,348 | INFO     | services.trade_journal | Logged signal XAUUSD_BUY_20260226211528
+2026-02-26 22:15:36,521 | INFO     | services.telegram_service | Telegram signal sent: XAUUSD BUY (id=XAUUSD_BUY_20260226211528)
+2026-02-26 22:15:36,521 | INFO     | __main__ | Signal sent: XAUUSD BUY @ 5216.2998046875 (id=XAUUSD_BUY_20260226211528)
+2026-02-26 22:20:37,455 | INFO     | __main__ | Starting analysis cycle
+2026-02-26 22:20:39,049 | INFO     | __main__ | GBPUSD DIAG: regime=RANGING htf=SELL ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:20:39,049 | INFO     | __main__ | GBPUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:20:41,827 | INFO     | __main__ | XAUUSD DIAG: regime=RANGING htf=BUY ltf_ok=True smc_ok=True factors=['BOS', 'CHOCH'] prob=0.71 FAIL_AT=None
+2026-02-26 22:20:43,157 | INFO     | __main__ | BTCUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 22:20:43,157 | INFO     | __main__ | BTCUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 22:20:43,157 | INFO     | __main__ | Cycle complete: 1 signal(s) from ['GBPUSD', 'XAUUSD', 'BTCUSD']
+2026-02-26 22:20:43,161 | INFO     | services.trade_journal | Logged signal XAUUSD_BUY_20260226212041
+2026-02-26 22:20:47,161 | INFO     | services.telegram_service | Telegram signal sent: XAUUSD BUY (id=XAUUSD_BUY_20260226212041)
+2026-02-26 22:20:47,162 | INFO     | __main__ | Signal sent: XAUUSD BUY @ 5215.7001953125 (id=XAUUSD_BUY_20260226212041)

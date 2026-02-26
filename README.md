@@ -4,6 +4,12 @@ Production-ready, modular trade signal engine with multi-layer confluence scorin
 
 ---
 
+## ⚠️ Disclaimer
+
+**This software is for educational and informational purposes only.** It is not financial, investment, or trading advice. Past performance does not guarantee future results. Trading involves substantial risk of loss. Use at your own risk. The authors are not responsible for any losses incurred. Always do your own research and consider consulting a licensed financial advisor.
+
+---
+
 ## Features
 
 - **Multi-layer strategy**: Market regime, MTF, SMC, technical confluence
@@ -273,7 +279,7 @@ It lists each signal with simulated outcome (WIN/LOSS/OPEN based on current pric
 
 ## Signal Format (Telegram)
 
-Each signal includes **CURRENT** (market price at signal time) and **ENTRY**:
+Each signal includes **CURRENT** (live market price at notification time only—never entry as fallback) when available, and **ENTRY**. If live price fetch fails, CURRENT is omitted.
 
 ```
 PAIR: BTCUSD
