@@ -4566,3 +4566,27 @@ core.exceptions.DataFetchError: yfinance error: 'NoneType' object is not subscri
 2026-02-26 14:58:09,241 | INFO     | services.trade_journal | Logged signal GBPUSD_BUY_20260226135807
 2026-02-26 14:58:09,731 | INFO     | services.telegram_service | Telegram signal sent: GBPUSD BUY (id=GBPUSD_BUY_20260226135807)
 2026-02-26 14:58:09,735 | INFO     | __main__ | Signal sent: GBPUSD BUY @ 1.3554176092147827 (id=GBPUSD_BUY_20260226135807)
+2026-02-26 15:53:01,805 | INFO     | services.calibration | Loaded calibration state: 5 bins
+2026-02-26 15:53:01,805 | INFO     | __main__ | Starting live mode, interval=300s
+2026-02-26 15:53:01,805 | INFO     | services.telegram_callback_receiver | Telegram callback receiver started
+2026-02-26 15:53:01,805 | INFO     | __main__ | Starting analysis cycle
+2026-02-26 15:53:05,818 | INFO     | __main__ | GBPUSD DIAG: regime=RANGING htf=BUY ltf_ok=True smc_ok=False factors=['CHOCH'] prob=0.63 FAIL_AT=None
+2026-02-26 15:53:07,128 | INFO     | __main__ | XAUUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 15:53:07,129 | INFO     | __main__ | XAUUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 15:53:09,326 | INFO     | __main__ | BTCUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 15:53:09,327 | INFO     | __main__ | BTCUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 15:53:09,327 | INFO     | __main__ | Cycle complete: 1 signal(s) from ['GBPUSD', 'XAUUSD', 'BTCUSD']
+2026-02-26 15:53:09,328 | INFO     | services.trade_journal | Logged signal GBPUSD_BUY_20260226145305
+2026-02-26 15:53:09,967 | INFO     | services.telegram_service | Telegram signal sent: GBPUSD BUY (id=GBPUSD_BUY_20260226145305)
+2026-02-26 15:53:09,968 | INFO     | __main__ | Signal sent: GBPUSD BUY @ 1.3549401760101318 (id=GBPUSD_BUY_20260226145305)
+2026-02-26 15:56:22,799 | INFO     | __main__ | User confirmed in position: GBPUSD_BUY_20260226145305
+2026-02-26 15:58:10,194 | INFO     | __main__ | Starting analysis cycle
+2026-02-26 15:58:12,491 | INFO     | __main__ | GBPUSD DIAG: regime=RANGING htf=BUY ltf_ok=True smc_ok=False factors=['CHOCH'] prob=0.63 FAIL_AT=None
+2026-02-26 15:58:13,679 | INFO     | __main__ | XAUUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 15:58:13,679 | INFO     | __main__ | XAUUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 15:58:14,122 | INFO     | __main__ | BTCUSD DIAG: regime=RANGING htf=BUY ltf_ok=False smc_ok=False factors=[] prob=0.00 FAIL_AT=mtf
+2026-02-26 15:58:14,122 | INFO     | __main__ | BTCUSD: no setup (regime/MTF/SMC not aligned)
+2026-02-26 15:58:14,122 | INFO     | __main__ | Cycle complete: 1 signal(s) from ['GBPUSD', 'XAUUSD', 'BTCUSD']
+2026-02-26 15:58:14,134 | INFO     | services.trade_journal | Logged signal GBPUSD_BUY_20260226145812
+2026-02-26 15:58:14,676 | INFO     | services.telegram_service | Telegram signal sent: GBPUSD BUY (id=GBPUSD_BUY_20260226145812)
+2026-02-26 15:58:14,677 | INFO     | __main__ | Signal sent: GBPUSD BUY @ 1.3549401760101318 (id=GBPUSD_BUY_20260226145812)
