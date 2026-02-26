@@ -39,11 +39,11 @@ async def build_daily_summary(
             continue
 
         try:
-            data = await fetcher.fetch_multi_timeframe(symbol, ["15m"], limit=5)
-            candles = data.get("15m", [])
-            current = candles[-1].close if candles else entry
+            current = await fetcher.get_live_price(symbol)
         except Exception:
-            current = entry
+            current = None
+        if current is None:
+            continue
 
         if signal_type == "BUY":
             if current >= tp:

@@ -3,7 +3,7 @@ Core data models for the Market Analysis Agent.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
@@ -79,9 +79,34 @@ class Signal:
     probability_score: float
     confluence_factors: List[str]
     timeframe: str
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     regime: Optional[MarketRegime] = None
     spread_bps: Optional[float] = None
+
+    def with_updated_entry(self, new_entry: float) -> "Signal":
+        """Return new Signal with entry, sl, tp adjusted (preserve distances)."""
+        sl_dist = abs(self.entry - self.stop_loss)
+        tp_dist = abs(self.take_profit - self.entry)
+        if self.signal_type == SignalType.BUY:
+            new_sl = new_entry - sl_dist
+            new_tp = new_entry + tp_dist
+        else:
+            new_sl = new_entry + sl_dist
+            new_tp = new_entry - tp_dist
+        return Signal(
+            symbol=self.symbol,
+            signal_type=self.signal_type,
+            entry=new_entry,
+            stop_loss=new_sl,
+            take_profit=new_tp,
+            risk_reward=self.risk_reward,
+            probability_score=self.probability_score,
+            confluence_factors=self.confluence_factors,
+            timeframe=self.timeframe,
+            timestamp=self.timestamp,
+            regime=self.regime,
+            spread_bps=self.spread_bps,
+        )
 
     def to_telegram_message(self, current_price: Optional[float] = None) -> str:
         """Format signal for Telegram. current_price: market price at signal time."""
@@ -120,4 +145,4 @@ class TradeRecord:
     pnl_pct: Optional[float] = None
     outcome: Optional[str] = None  # "WIN" | "LOSS" | "BE"
     regime: Optional[str] = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))

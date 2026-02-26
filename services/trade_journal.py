@@ -4,7 +4,7 @@ Trade journal - logs trades to SQLite and CSV.
 
 import csv
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
 
@@ -115,7 +115,7 @@ class TradeJournal:
             UPDATE trades SET exit_price=?, exit_time=?, pnl=?, pnl_pct=?, outcome=?
             WHERE signal_id=?
             """,
-            (exit_price, datetime.utcnow().isoformat(), pnl, pnl_pct, outcome, signal_id),
+            (exit_price, datetime.now(timezone.utc).isoformat(), pnl, pnl_pct, outcome, signal_id),
         )
         conn.commit()
         conn.close()
@@ -202,7 +202,7 @@ class TradeJournal:
         user_in_position_only: if True, only return trades where user clicked "I'm in".
         """
         import sqlite3
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         conditions = ["outcome IS NULL"]
@@ -211,7 +211,7 @@ class TradeJournal:
             conditions.append("symbol = ?")
             params.append(symbol)
         if max_age_hours is not None:
-            cutoff = (datetime.utcnow() - timedelta(hours=max_age_hours)).isoformat()
+            cutoff = (datetime.now(timezone.utc) - timedelta(hours=max_age_hours)).isoformat()
             conditions.append("timestamp >= ?")
             params.append(cutoff)
         if exclude_alerted:
@@ -260,7 +260,7 @@ class TradeJournal:
         conn = sqlite3.connect(str(self.db_path))
         conn.execute(
             "UPDATE trades SET emergency_exit_alerted_at = ? WHERE signal_id = ?",
-            (datetime.utcnow().isoformat(), signal_id),
+            (datetime.now(timezone.utc).isoformat(), signal_id),
         )
         conn.commit()
         conn.close()

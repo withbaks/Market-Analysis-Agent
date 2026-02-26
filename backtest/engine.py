@@ -7,7 +7,7 @@ Note: Uses probability-weighted outcome simulation when bar-by-bar data unavaila
 import logging
 import random
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable, Dict, List, Optional
 
 from core.models import OHLCV, Signal, SignalType, TradeRecord
@@ -95,7 +95,7 @@ class BacktestEngine:
                 risk_reward=sig.risk_reward,
                 probability_score=sig.probability_score,
                 exit_price=exit_price,
-                exit_time=datetime.utcnow(),
+                exit_time=datetime.now(timezone.utc),
                 pnl=pnl,
                 pnl_pct=pnl_pct,
                 outcome=outcome,

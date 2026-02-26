@@ -6,7 +6,7 @@ Single data source - no Binance required.
 import asyncio
 import logging
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
 from core.models import OHLCV
@@ -66,12 +66,12 @@ class YFinanceDataClient:
         else:
             fetch_limit = limit
 
-        end = datetime.utcnow()
+        end = datetime.now(timezone.utc)
         if end_time:
-            end = datetime.utcfromtimestamp(end_time / 1000)
+            end = datetime.fromtimestamp(end_time / 1000, tz=timezone.utc)
         start = end - timedelta(days=30)  # yfinance needs days
         if start_time:
-            start = datetime.utcfromtimestamp(start_time / 1000)
+            start = datetime.fromtimestamp(start_time / 1000, tz=timezone.utc)
 
         def _fetch():
             ticker = yf.Ticker(symbol)
@@ -123,6 +123,48 @@ class YFinanceDataClient:
             candles = self._resample_4h(candles)
 
         return candles[-limit:] if len(candles) > limit else candles
+
+    async def get_live_price(self, symbol: str) -> Optional[float]:
+        """
+        Fetch live market price via quote API (regularMarketPrice/currentPrice).
+        Uses Yahoo's quote endpoint, not history() which omits incomplete candles.
+        """
+        try:
+            import yfinance as yf
+        except ImportError:
+            return None
+
+        def _fetch() -> Optional[float]:
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            if not info:
+                return None
+            price = info.get("regularMarketPrice") or info.get("currentPrice")
+            if price is not None:
+                return float(price)
+            return None
+
+        loop = asyncio.get_event_loop()
+        for attempt in range(MAX_RETRIES):
+            try:
+                price = await loop.run_in_executor(None, _fetch)
+                if price is not None:
+                    return price
+            except Exception as e:
+                pass
+            if attempt < MAX_RETRIES - 1:
+                delay = RETRY_DELAY_BASE * (2**attempt) + random.uniform(0, 1)
+                logger.warning(
+                    "get_live_price failed for %s (attempt %d/%d), retrying in %.1fs",
+                    symbol,
+                    attempt + 1,
+                    MAX_RETRIES,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+            else:
+                logger.debug("get_live_price failed for %s after %d attempts", symbol, MAX_RETRIES)
+        return None
 
     def _resample_4h(self, candles: List[OHLCV]) -> List[OHLCV]:
         """Aggregate 1h candles into 4h."""

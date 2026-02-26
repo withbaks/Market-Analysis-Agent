@@ -66,22 +66,24 @@ class OHLCFetcher:
             result[tf] = await self.fetch(symbol, tf, limit=limit, use_cache=use_cache)
         return result
 
+    async def get_live_price(self, symbol: str) -> Optional[float]:
+        """
+        Fetch live market price via quote API (regularMarketPrice/currentPrice).
+        Single source of truth for real-time price; does not use history().
+        """
+        try:
+            api_symbol = self._get_api_symbol(symbol)
+            return await self._yfinance.get_live_price(api_symbol)
+        except Exception as e:
+            logger.debug("get_live_price failed for %s: %s", symbol, e)
+            return None
+
     async def get_current_price(self, symbol: str, _entry_tf: str = "15m") -> Optional[float]:
         """
-        Fetch live market price at call time (bypasses cache).
-        Tries 5m first (freshest), then 1h, then entry_tf as fallbacks.
+        Deprecated: use get_live_price() instead.
+        Kept for compatibility; delegates to get_live_price().
         """
-        for tf in ("5m", "1h", _entry_tf):
-            try:
-                result = await self.fetch_multi_timeframe(
-                    symbol, [tf], limit=2, use_cache=False
-                )
-                candles = result.get(tf, [])
-                if candles:
-                    return candles[-1].close
-            except Exception as e:
-                logger.debug("get_current_price %s %s failed: %s", symbol, tf, e)
-        return None
+        return await self.get_live_price(symbol)
 
     async def close(self) -> None:
         """Close underlying clients."""

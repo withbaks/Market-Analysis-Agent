@@ -252,6 +252,17 @@ All parameters in `config/settings.py`:
 - XAUUSD → GC=F (gold futures)
 - GBPUSD → GBPUSD=X (forex)
 
+### Data Sources: Live vs Historical
+
+- **ENTRY**: Strategy price from analysis (last completed candle close). This is the recommended execution price.
+- **CURRENT**: Live market price at the exact moment the signal is sent (Yahoo quote API). Shown for reference so you know the market snapshot when you received the alert. If unavailable, the CURRENT line is omitted but the signal is still sent.
+- **Historical candles** (for regime, MTF, SMC, ATR): Use `ticker.history()`. yfinance omits the current incomplete candle, so the last row is the most recent *completed* candle (can be 5–15 min stale).
+- **Daily summary & emergency exit**: Use live price via quote API for outcome/P&L.
+
+### Data Accuracy
+
+yfinance is free and has limitations: delayed data for some assets, intermittent quote API failures, no SLA. For institutional-grade accuracy, consider a paid data feed (e.g. Polygon, Alpha Vantage, broker APIs).
+
 ---
 
 ## Position Tracking (Buttons)
@@ -260,16 +271,16 @@ Every signal includes:
 - **✅ I'm in** – You took the trade; agent monitors for emergency exit
 - **❌ Skipped** – You didn't take it; no monitoring
 
-The bot **replies** when you click any button:
-- "✅ Got it! I'll monitor this position for emergency exits."
-- "❌ Skipped. I won't monitor this one."
-- "🔒 Closed. I'll stop monitoring."
+The bot **replies** when you click any button, including a short order summary so you know which trade it refers to:
+- "✅ Got it! I'll monitor this position for emergency exits. *XAUUSD BUY @ 5,212.50*"
+- "❌ Skipped. I won't monitor this one. *XAUUSD BUY @ 5,212.50*"
+- "🔒 Closed. I'll stop monitoring. *XAUUSD BUY @ 5,212.50*"
 
 Only positions where you clicked **I'm in** are monitored. Run `python main.py live` so the bot can receive button clicks.
 
 ## Daily Summary (11:59pm)
 
-At the end of each day (11:59pm UTC), the bot sends a **self-rating summary**:
+At the end of each day (11:59pm local time, configurable via `DAILY_SUMMARY_TIMEZONE`), the bot sends a **self-rating summary**:
 
 > *"If you had taken the trades I sent you today..."*
 
@@ -279,12 +290,13 @@ It lists each signal with simulated outcome (WIN/LOSS/OPEN based on current pric
 
 ## Signal Format (Telegram)
 
-Each signal includes **CURRENT** (live market price at notification time only—never entry as fallback) when available, and **ENTRY**. If live price fetch fails, CURRENT is omitted.
+- **ENTRY**: Recommended execution price from the strategy (candle-based analysis).
+- **CURRENT**: Live market price at the exact moment the signal was sent (for reference). Omitted if unavailable.
 
 ```
 PAIR: BTCUSD
 TYPE: BUY
-CURRENT: 62,450
+CURRENT: 62,455
 ENTRY: 62,450
 STOP LOSS: 61,980
 TAKE PROFIT: 63,900
@@ -331,6 +343,7 @@ Original SL: 61,980 | TP: 63,900
 - Retry on transient network errors (3 attempts)
 - Duplicate signal prevention (5 min cooldown per pair)
 - Graceful degradation when Telegram unavailable
+- Omit CURRENT line if live price unavailable (no stale fallback); signal still sent
 
 ---
 

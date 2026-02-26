@@ -4,7 +4,7 @@ Dynamic SL/TP, position sizing, kill switch, max trades.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 
 from core.models import OHLCV, Signal, SignalType, TradeRecord
@@ -40,10 +40,10 @@ class RiskEngine:
         self.kill_switch = kill_switch
         self._trades_today: List[datetime] = []
         self._consecutive_losses = 0
-        self._last_reset = datetime.utcnow().date()
+        self._last_reset = datetime.now(timezone.utc).date()
 
     def _reset_daily_if_needed(self) -> None:
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         if today != self._last_reset:
             self._trades_today = []
             self._last_reset = today
@@ -98,7 +98,7 @@ class RiskEngine:
 
     def record_trade(self, outcome: str) -> None:
         """Record trade outcome for kill switch."""
-        self._trades_today.append(datetime.utcnow())
+        self._trades_today.append(datetime.now(timezone.utc))
         if outcome == "LOSS":
             self._consecutive_losses += 1
         else:

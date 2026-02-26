@@ -127,6 +127,10 @@ class MarketAnalysisAgent:
         if not ltf:
             return []
 
+        if DIAGNOSTIC_MODE and ltf:
+            last_ts = ltf[-1].timestamp
+            logger.debug("%s last %s candle closed at %s", symbol, self.entry_tf, last_ts)
+
         entry = ltf[-1].close
         sl, tp, rr = self.risk.compute_sl_tp(ltf, entry, direction)
 
@@ -165,14 +169,14 @@ class MarketAnalysisAgent:
 
         logger.info("Cycle complete: %d signal(s) from %s", len(all_signals), self.symbols)
         for signal in all_signals:
+            # ENTRY = strategy price (from analysis). CURRENT = live market at send time.
+            live_price = await self.fetcher.get_live_price(signal.symbol)
+            if live_price is None:
+                logger.warning("get_live_price failed for %s, sending without CURRENT line", signal.symbol)
             signal_id = self.journal.log_signal(signal)
-            # Fetch live price at send time only; no fallback to entry
-            current_price = await self.fetcher.get_current_price(signal.symbol, self.entry_tf)
-            if current_price is None:
-                logger.warning("get_current_price failed for %s, omitting CURRENT line", signal.symbol)
             if self.telegram.is_enabled():
-                await self.telegram.send_signal(signal, signal_id, current_price=current_price)
-            logger.info("Signal sent: %s %s (id=%s)%s", signal.symbol, signal.signal_type.value, signal_id, f" @ {current_price}" if current_price is not None else "")
+                await self.telegram.send_signal(signal, signal_id, current_price=live_price)
+            logger.info("Signal sent: %s %s entry=%s current=%s (id=%s)", signal.symbol, signal.signal_type.value, signal.entry, live_price, signal_id)
 
         # Human-like: monitor open positions and alert emergency exits
         await self._check_emergency_exits()
@@ -182,20 +186,32 @@ class MarketAnalysisAgent:
         Handle Telegram button clicks: in, skip, closed.
         Returns message to send as reply (or None).
         """
+        trade = self.journal.get_trade(signal_id)
+        summary = ""
+        if trade:
+            sym = trade.get("symbol", "")
+            typ = trade.get("signal_type", "")
+            ent = trade.get("entry")
+            try:
+                ent_str = f" @ {float(ent):,.2f}" if ent is not None else ""
+            except (TypeError, ValueError):
+                ent_str = ""
+            summary = f"\n\n📋 <i>{sym} {typ}{ent_str}</i>"
+
         if action == "in":
             if self.journal.set_user_in_position(signal_id, True):
                 logger.info("User confirmed in position: %s", signal_id)
-                return "✅ <b>Got it!</b> I'll monitor this position for emergency exits."
+                return f"✅ <b>Got it!</b> I'll monitor this position for emergency exits.{summary}"
             logger.debug("Button 'I'm in' for unknown/old signal: %s", signal_id)
             return "⚠️ Signal not found or already closed."
         elif action == "skip":
             self.journal.set_user_in_position(signal_id, False)
-            return "❌ <b>Skipped.</b> I won't monitor this one."
+            return f"❌ <b>Skipped.</b> I won't monitor this one.{summary}"
         elif action == "closed":
             if self.journal.set_user_closed(signal_id):
                 logger.info("User closed position: %s", signal_id)
-                return "🔒 <b>Closed.</b> I'll stop monitoring."
-            return "🔒 <b>Closed.</b> I'll stop monitoring."
+                return f"🔒 <b>Closed.</b> I'll stop monitoring.{summary}"
+            return f"🔒 <b>Closed.</b> I'll stop monitoring.{summary}"
         return None
 
     async def _check_emergency_exits(self) -> None:
@@ -225,8 +241,10 @@ class MarketAnalysisAgent:
                 logger.debug("Skip emergency check for %s: %s", symbol, e)
                 continue
 
-            ltf = data.get("15m", [])
-            current_price = ltf[-1].close if ltf else entry
+            current_price = await self.fetcher.get_live_price(symbol)
+            if current_price is None:
+                logger.debug("Skip emergency check for %s: live price unavailable", symbol)
+                continue
 
             should_exit, reason = self.position_monitor.should_emergency_exit(
                 data, symbol, signal_type, entry, sl, tp, "15m"
